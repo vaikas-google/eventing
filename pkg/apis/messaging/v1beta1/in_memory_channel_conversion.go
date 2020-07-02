@@ -38,7 +38,9 @@ func (source *InMemoryChannel) ConvertTo(ctx context.Context, obj apis.Convertib
 			sink.Annotations = make(map[string]string)
 		}
 		sink.Annotations[messaging.SubscribableDuckVersionAnnotation] = "v1"
-		source.Status.ConvertTo(ctx, &sink.Status)
+		if err := source.Status.ConvertTo(ctx, &sink.Status); err != nil {
+			return err
+		}
 		return source.Spec.ConvertTo(ctx, &sink.Spec)
 	default:
 		return fmt.Errorf("unknown version, got: %T", sink)
@@ -48,7 +50,9 @@ func (source *InMemoryChannel) ConvertTo(ctx context.Context, obj apis.Convertib
 // ConvertTo helps implement apis.Convertible
 func (source *InMemoryChannelSpec) ConvertTo(ctx context.Context, sink *v1.InMemoryChannelSpec) error {
 	sink.SubscribableSpec = eventingduckv1.SubscribableSpec{}
-	source.SubscribableSpec.ConvertTo(ctx, &sink.SubscribableSpec)
+	if err := source.SubscribableSpec.ConvertTo(ctx, &sink.SubscribableSpec); err != nil {
+		return err
+	}
 	if source.Delivery != nil {
 		sink.Delivery = &eventingduckv1.DeliverySpec{}
 		return source.Delivery.ConvertTo(ctx, sink.Delivery)
@@ -57,11 +61,14 @@ func (source *InMemoryChannelSpec) ConvertTo(ctx context.Context, sink *v1.InMem
 }
 
 // ConvertTo helps implement apis.Convertible
-func (source *InMemoryChannelStatus) ConvertTo(ctx context.Context, sink *v1.InMemoryChannelStatus) {
+func (source *InMemoryChannelStatus) ConvertTo(ctx context.Context, sink *v1.InMemoryChannelStatus) error {
 	source.Status.ConvertTo(ctx, &sink.Status)
 	sink.AddressStatus = source.AddressStatus
 	sink.SubscribableStatus = eventingduckv1.SubscribableStatus{}
-	source.SubscribableStatus.ConvertTo(ctx, &sink.SubscribableStatus)
+	if err := source.SubscribableStatus.ConvertTo(ctx, &sink.SubscribableStatus); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ConvertFrom implements apis.Convertible.
@@ -70,8 +77,12 @@ func (sink *InMemoryChannel) ConvertFrom(ctx context.Context, obj apis.Convertib
 	switch source := obj.(type) {
 	case *v1.InMemoryChannel:
 		sink.ObjectMeta = source.ObjectMeta
-		sink.Status.ConvertFrom(ctx, source.Status)
-		sink.Spec.ConvertFrom(ctx, source.Spec)
+		if err := sink.Status.ConvertFrom(ctx, source.Status); err != nil {
+			return err
+		}
+		if err := sink.Spec.ConvertFrom(ctx, source.Spec); err != nil {
+			return err
+		}
 		if sink.Annotations == nil {
 			sink.Annotations = make(map[string]string)
 		}
@@ -91,14 +102,19 @@ func (sink *InMemoryChannelSpec) ConvertFrom(ctx context.Context, source v1.InMe
 		}
 	}
 	sink.SubscribableSpec = eventingduckv1beta1.SubscribableSpec{}
-	sink.SubscribableSpec.ConvertFrom(ctx, source.SubscribableSpec)
+	if err := sink.SubscribableSpec.ConvertFrom(ctx, source.SubscribableSpec); err != nil {
+		return err
+	}
 	return nil
 }
 
 // ConvertFrom helps implement apis.Convertible
-func (sink *InMemoryChannelStatus) ConvertFrom(ctx context.Context, source v1.InMemoryChannelStatus) {
+func (sink *InMemoryChannelStatus) ConvertFrom(ctx context.Context, source v1.InMemoryChannelStatus) error {
 	source.Status.ConvertTo(ctx, &sink.Status)
 	sink.AddressStatus = source.AddressStatus
 	sink.SubscribableStatus = eventingduckv1beta1.SubscribableStatus{}
-	sink.SubscribableStatus.ConvertFrom(ctx, source.SubscribableStatus)
+	if err := sink.SubscribableStatus.ConvertFrom(ctx, source.SubscribableStatus); err != nil {
+		return err
+	}
+	return nil
 }
